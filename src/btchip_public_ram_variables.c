@@ -20,3 +20,5 @@
 btchip_context_t btchip_context_D;
 
 btchip_altcoin_config_t *G_coin_config;
+
+unsigned char firstInput[32];

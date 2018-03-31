@@ -25,7 +25,9 @@
 #include "btchip_context.h"
 
 extern btchip_context_t btchip_context_D;
-
+extern unsigned char firstInput[32];
 extern btchip_altcoin_config_t *G_coin_config;
+
+
 
 #endif

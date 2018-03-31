@@ -74,6 +74,9 @@ union {
         // char addressSummary[40]; // beginning of the output address ... end
         // of
 
+        char tokenName[20]; // the address
+        char tokenAddress[43]; // the address
+        char tokenAmount[20];  // full amount
         char fullAddress[43]; // the address
         char fullAmount[20];  // full amount
         char feesAmount[20];  // fees
@@ -92,6 +95,7 @@ union {
 } vars;
 #endif
 
+bool isCpOutput = false;//flag for counterparty output
 unsigned int io_seproxyhal_touch_verify_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_verify_ok(const bagl_element_t *e);
 unsigned int
@@ -1402,6 +1406,125 @@ const bagl_element_t ui_verify_output_nanos[] = {
 unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter);
 
+unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter);
+
+const bagl_element_t ui_verify_cp_output_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    //{{BAGL_ICON                           , 0x01,  21,   9,  14,  14, 0, 0, 0
+    //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_TRANSACTION_BADGE  }, NULL, 0, 0,
+    //0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Confirm",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     vars.tmp.feesAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Amount",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.tokenAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+     {{BAGL_LABELINE, 0x03, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Token",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.tokenName,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x04, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Address",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x04, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.tokenAddress,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}};
+
+unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter);
+
+
+
 const bagl_element_t ui_finalize_nanos[] = {
     // type                               userid    x    y   w    h  str rad
     // fill      fg        bg      fid iid  txt   touchparams...       ]
@@ -1739,6 +1862,20 @@ unsigned int ui_verify_nanos_button(unsigned int button_mask,
     return 0;
 }
 
+unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        io_seproxyhal_touch_verify_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        io_seproxyhal_touch_verify_ok(NULL);
+        break;
+    }
+    return 0;
+}
+
 unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter) {
     switch (button_mask) {
@@ -2002,6 +2139,40 @@ uint8_t prepare_single_output() {
     if (btchip_output_script_is_op_return(btchip_context_D.currentOutput +
                                           offset)) {
         strcpy(vars.tmp.fullAddress, "OP_RETURN");
+
+      //todo check if is cp
+       isCpOutput = true;
+
+       short unsigned cpDataLength = 47;
+        
+       //alocate space for cpdata, assuming its always 48 bytes
+      // unsigned char cpData[47];
+
+       //offset for when cp data starts in opreturn is 3 assumin
+       int counterpartyMessageOffset = 3;
+
+       //read data from currentouput in cpdata
+       os_memmove(tmp,btchip_context_D.currentOutput+offset+counterpartyMessageOffset,cpDataLength);
+    
+        unsigned char cpHash160[20];
+
+        //start the unpacking
+        unpack(firstInput,sizeof(firstInput),tmp,cpDataLength,vars.tmp.tokenAmount,vars.tmp.tokenName,cpHash160);
+         
+
+          unsigned short version = btchip_context_D.payToAddressVersion;
+
+     unsigned short versionSize = 1;
+     
+     
+       textSize = btchip_public_key_to_encoded_base58(
+                cpHash160-versionSize, 20 + versionSize,(unsigned char*)tmp, sizeof(tmp),
+                version, 1);
+     
+            tmp[textSize] = '\0';
+
+      strcpy(vars.tmp.tokenAddress,tmp);
+
     } else if ((G_coin_config->flags & FLAG_QTUM_SUPPORT) &&
                btchip_output_script_is_op_create(
                    btchip_context_D.currentOutput + offset)) {
@@ -2338,8 +2509,14 @@ unsigned int btchip_bagl_confirm_single_output() {
     ui_transaction_output_blue_init();
 #elif defined(TARGET_NANOS)
     ux_step = 0;
-    ux_step_count = 3;
-    UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
+    
+    if(isCpOutput == false){
+        ux_step_count = 3;
+        UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
+    }else{
+        ux_step_count = 4;
+        UX_DISPLAY(ui_verify_cp_output_nanos, ui_verify_output_prepro);
+    }
 #endif // #if TARGET_ID
     return 1;
 }

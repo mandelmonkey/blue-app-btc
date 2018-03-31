@@ -404,6 +404,25 @@ void transaction_parse(unsigned char parseMode) {
                                              "signature\n"));
                                 goto fail;
                             }
+
+                             //get first input txid as it is used to decrypt cp message data from the op_return
+                            //make sure to only grab the first input
+                            if(strlen(trustedInput) == 1){ 
+                                
+                                int bufsize = 32;//assume its 32 bytes long
+
+                                unsigned char tmpBuff[bufsize]; 
+
+                                os_memmove(tmpBuff, trustedInput+4, bufsize); 
+
+                                //reverse as txids are backwards
+                                int ii;
+                                for(ii = 0; ii < bufsize; ii++) {
+                                    firstInput[ii] = tmpBuff[bufsize - 1 - ii];
+                                }
+
+                            }
+
                             // Update the hash with prevout data
                             savePointer =
                                 btchip_context_D.transactionBufferPointer;
