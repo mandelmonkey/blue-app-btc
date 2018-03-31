@@ -28,7 +28,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=2
-APPVERSION_P=3
+APPVERSION_P=4
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # simplify for tests
@@ -175,8 +175,22 @@ DEFINES   += APPVERSION=\"$(APPVERSION)\"
 ##############
 # Compiler #
 ##############
-CCPATH   := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
+ 
+ifneq ($(BOLOS_ENV),)
+$(info BOLOS_ENV=$(BOLOS_ENV))
 CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
+GCCPATH := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
+else
+$(info BOLOS_ENV is not set: falling back to CLANGPATH and GCCPATH)
+endif
+ifeq ($(CLANGPATH),)
+$(info CLANGPATH is not set: clang will be used from PATH)
+endif
+ifeq ($(GCCPATH),)
+$(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
+endif
+
+
 CC       := $(CLANGPATH)clang 
 
 #CFLAGS   += -O0
@@ -198,8 +212,8 @@ SDK_SOURCE_PATH  += lib_stusb qrcode
 SDK_SOURCE_PATH  += lib_u2f lib_stusb_impl
 
 DEFINES   += USB_SEGMENT_SIZE=64 
-#DEFINES   += U2F_PROXY_MAGIC=\"BTC\"
-#DEFINES   += HAVE_IO_U2F HAVE_U2F 
+DEFINES   += U2F_PROXY_MAGIC=\"BTC\"
+DEFINES   += HAVE_IO_U2F HAVE_U2F 
 #DEFINES   += BLE_SEGMENT_SIZE=20
 #DEFINES   += HAVE_USB_CLASS_CCID
 
