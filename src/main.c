@@ -17,7 +17,7 @@
 
 #include "os.h"
 #include "cx.h"
-
+#include "counterparty_utils.h"
 #include "os_io_seproxyhal.h"
 #include "string.h"
 
@@ -28,6 +28,11 @@
 #include "segwit_addr.h"
 
 #include "glyphs.h"
+
+ 
+#include <stdio.h> 
+#include <stdlib.h>
+#include <math.h> 
 
 #define __NAME3(a, b, c) a##b##c
 #define NAME3(a, b, c) __NAME3(a, b, c)
@@ -49,6 +54,7 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 union {
     struct {
+        char tokenName[20]; 
         char addressSummary[40]; // beginning of the output address ... end of
         char fullAmount[65];     // full amount
         char fullAddress[65];
@@ -80,6 +86,12 @@ union {
         char fullAddress[43]; // the address
         char fullAmount[20];  // full amount
         char feesAmount[20];  // fees
+
+        char getAsset[40]; // get asset
+        char giveAsset[40]; // give asset
+        char getAmount[20]; // get asset amount
+        char giveAmount[20]; // give asset amount
+
     } tmp;
 
     /*
@@ -95,7 +107,7 @@ union {
 } vars;
 #endif
 
-bool isCpOutput = false;//flag for counterparty output
+unsigned short cpType = 0;//flag for counterparty output
 unsigned int io_seproxyhal_touch_verify_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_verify_ok(const bagl_element_t *e);
 unsigned int
@@ -1403,13 +1415,11 @@ const bagl_element_t ui_verify_output_nanos[] = {
      NULL,
      NULL,
      NULL}};
-unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
+
+unsigned int ui_verify_cp_es_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter);
 
-unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
-                                           unsigned int button_mask_counter);
-
-const bagl_element_t ui_verify_cp_output_nanos[] = {
+const bagl_element_t ui_verify_cp_es_output_nanos[] = {
     // type                               userid    x    y   w    h  str rad
     // fill      fg        bg      fid iid  txt   touchparams...       ]
     {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
@@ -1520,8 +1530,198 @@ const bagl_element_t ui_verify_cp_output_nanos[] = {
      NULL,
      NULL}};
 
-unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
+ 
+unsigned int ui_verify_cp_order_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter);
+ 
+
+const bagl_element_t ui_verify_cp_order_output_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+     
+
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Give Amount",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.giveAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+     {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Give Token",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.giveAsset,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+     {{BAGL_LABELINE, 0x03, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Get Amount",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.getAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x04, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Get Token",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x04, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.getAsset,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}};
+
+
+
+unsigned int ui_verify_cp_cancel_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter);
+
+const bagl_element_t ui_verify_cp_cancel_output_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    //{{BAGL_ICON                           , 0x01,  21,   9,  14,  14, 0, 0, 0
+    //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_TRANSACTION_BADGE  }, NULL, 0, 0,
+    //0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Confirm",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     vars.tmp.feesAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Type",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     "Cancel Order",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}};
 
 
 
@@ -1862,7 +2062,37 @@ unsigned int ui_verify_nanos_button(unsigned int button_mask,
     return 0;
 }
 
-unsigned int ui_verify_cp_output_nanos_button(unsigned int button_mask,
+ 
+
+unsigned int ui_verify_cp_order_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        io_seproxyhal_touch_verify_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        io_seproxyhal_touch_verify_ok(NULL);
+        break;
+    }
+    return 0;
+}
+
+unsigned int ui_verify_cp_es_output_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        io_seproxyhal_touch_verify_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        io_seproxyhal_touch_verify_ok(NULL);
+        break;
+    }
+    return 0;
+}
+
+unsigned int ui_verify_cp_cancel_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
@@ -2121,6 +2351,8 @@ error:
 
 uint8_t prepare_single_output() {
     // TODO : special display for OP_RETURN
+
+    cpType = 0;
     unsigned char amount[8];
     char tmp[80];
     unsigned int offset = 0;
@@ -2140,8 +2372,7 @@ uint8_t prepare_single_output() {
                                           offset)) {
         strcpy(vars.tmp.fullAddress, "OP_RETURN");
 
-      //todo check if is cp
-       isCpOutput = true;
+     
 
        short unsigned cpDataLength = 47;
         
@@ -2157,8 +2388,10 @@ uint8_t prepare_single_output() {
         unsigned char cpHash160[20];
 
         //start the unpacking
-        unpack(firstInput,sizeof(firstInput),tmp,cpDataLength,vars.tmp.tokenAmount,vars.tmp.tokenName,cpHash160);
+         //todo check if is cp
+       cpType = unpack(firstInput,sizeof(firstInput),tmp,cpDataLength,vars.tmp.tokenAmount,vars.tmp.tokenName,cpHash160,vars.tmp.getAsset,vars.tmp.giveAsset,vars.tmp.getAmount,vars.tmp.giveAmount);
          
+         if(cpType == TYPE_ENHANCED_SEND){
 
           unsigned short version = btchip_context_D.payToAddressVersion;
 
@@ -2172,6 +2405,8 @@ uint8_t prepare_single_output() {
             tmp[textSize] = '\0';
 
       strcpy(vars.tmp.tokenAddress,tmp);
+
+  }
 
     } else if ((G_coin_config->flags & FLAG_QTUM_SUPPORT) &&
                btchip_output_script_is_op_create(
@@ -2510,13 +2745,21 @@ unsigned int btchip_bagl_confirm_single_output() {
 #elif defined(TARGET_NANOS)
     ux_step = 0;
     
-    if(isCpOutput == false){
+    if(cpType == 0){//not counterparty output
         ux_step_count = 3;
         UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
-    }else{
+    }else if(cpType == TYPE_ENHANCED_SEND){//enhanced send
         ux_step_count = 4;
-        UX_DISPLAY(ui_verify_cp_output_nanos, ui_verify_output_prepro);
+        UX_DISPLAY(ui_verify_cp_es_output_nanos, ui_verify_output_prepro);
+    }else if(cpType == TYPE_ORDER){//order
+        ux_step_count = 4;
+        UX_DISPLAY(ui_verify_cp_order_output_nanos, ui_verify_output_prepro);
     }
+    else if(cpType == TYPE_CANCEL){//cancel
+        ux_step_count = 2;
+        UX_DISPLAY(ui_verify_cp_cancel_output_nanos, ui_verify_output_prepro);
+    }
+
 #endif // #if TARGET_ID
     return 1;
 }
