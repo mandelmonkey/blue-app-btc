@@ -80,7 +80,7 @@ union {
         // char addressSummary[40]; // beginning of the output address ... end
         // of
 
-        char tokenName[20]; // the address
+        char tokenName[20]; // the tokenname
         char tokenAddress[43]; // the address
         char tokenAmount[20];  // full amount
         char fullAddress[43]; // the address
